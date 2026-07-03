@@ -1,0 +1,48 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+// Function to check if a headline seems fake
+bool isFakeNews(string headline) {
+    // A list of sensational words often found in fake news or clickbait
+    vector<string> redFlags = {
+        "secret", "miracle", "alien", "instantly", 
+        "shocking", "hoax", "cure", "100%"
+    };
+    
+    int suspiciousWordCount = 0;
+
+    // Convert the entire headline to lowercase to make matching easier
+    for (char &c : headline) {
+        c = tolower(c);
+    }
+
+    // Check if any of our red flag words appear anywhere in the headline
+    for (string flag : redFlags) {
+        // string::npos means "not found". So if it IS found, we increase the count.
+        if (headline.find(flag) != string::npos) {
+            suspiciousWordCount++;
+        }
+    }
+
+    // If it contains 2 or more sensational words, we flag it as FAKE
+    return suspiciousWordCount >= 2; 
+}
+
+int main() {
+    // Let's test it out!
+    string headline1 = "New economic policy passes senate vote smoothly";
+    string headline2 = "SHOCKING! Secret miracle pill cures everything instantly!";
+
+    cout << "--- Simple News Scanner ---\n\n";
+
+    cout << "Headline: " << headline1 << "\n";
+    cout << "Result:   " << (isFakeNews(headline1) ? "[FAKE NEWS]" : "[REAL NEWS]") << "\n\n";
+
+    cout << "Headline: " << headline2 << "\n";
+    cout << "Result:   " << (isFakeNews(headline2) ? "[FAKE NEWS]" : "[REAL NEWS]") << "\n";
+
+    return 0;
+}
