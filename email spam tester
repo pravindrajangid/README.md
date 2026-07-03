@@ -1,0 +1,72 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <sstream>
+#include <cmath>
+
+class SpamClassifier {
+private:
+    std::map<std::string, int> spamWords;
+    std::map<std::string, int> hamWords;
+    int spamCount = 0;
+    int hamCount = 0;
+
+    std::vector<std::string> tokenize(std::string text) {
+        std::vector<std::string> tokens;
+        std::stringstream ss(text);
+        std::string word;
+        while (ss >> word) {
+            // Basic normalization: lowercasing
+            for (auto &c : word) c = std::tolower(c);
+            tokens.push_back(word);
+        }
+        return tokens;
+    }
+
+public:
+    void train(std::string text, bool isSpam) {
+        auto tokens = tokenize(text);
+        if (isSpam) {
+            spamCount++;
+            for (const auto &w : tokens) spamWords[w]++;
+        } else {
+            hamCount++;
+            for (const auto &w : tokens) hamWords[w]++;
+        }
+    }
+
+    double predict(std::string text) {
+        auto tokens = tokenize(text);
+        double logSpamProb = std::log(0.5); // Initial prior probability
+        double logHamProb = std::log(0.5);
+
+        for (const auto &w : tokens) {
+            // Apply Laplace smoothing to avoid multiplication by zero
+            logSpamProb += std::log((spamWords[w] + 1.0) / (spamCount + 2.0));
+            logHamProb += std::log((hamWords[w] + 1.0) / (hamCount + 2.0));
+        }
+
+        return logSpamProb > logHamProb ? 1.0 : 0.0;
+    }
+};
+
+int main() {
+    SpamClassifier classifier;
+
+    // Dummy Training Data
+    classifier.train("win money now click here", true);
+    classifier.train("lottery prize claim today", true);
+    classifier.train("hey are we meeting for coffee", false);
+    classifier.train("project update report attached", false);
+
+    // Testing
+    std::string testEmail = "get money today";
+    if (classifier.predict(testEmail)) {
+        std::cout << "Result: SPAM" << std::endl;
+    } else {
+        std::cout << "Result: NOT SPAM" << std::endl;
+    }
+
+    return 0;
+}
