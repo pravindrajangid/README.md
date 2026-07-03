@@ -1,0 +1,125 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <cmath>
+
+using namespace std;
+
+// Define a 2D grid type for our images and feature maps
+typedef vector<vector<double>> Matrix;
+
+class MiniCNN {
+private:
+    Matrix filter;
+    vector<Matrix> classWeights; // Weights for Apple, Banana, Orange
+
+public:
+    MiniCNN() {
+        // A simple 3x3 filter designed to look for diagonal/curved shapes
+        filter = {
+            { 1.0,  0.0, -1.0 },
+            { 1.0,  0.0, -1.0 },
+            { 1.0,  0.0, -1.0 }
+        };
+
+        // Mock learned weights for the final 2x2 layer for [Apple, Banana, Orange]
+        // Apple weights (prefers top-heavy features)
+        classWeights.push_back({{2.5, 0.5}, {0.1, 1.2}});
+        // Banana weights (prefers elongated, asymmetrical features)
+        classWeights.push_back({{0.2, 3.1}, {1.5, 0.5}});
+        // Orange weights (prefers uniform, highly activated features)
+        classWeights.push_back({{1.8, 1.9}, {2.0, 2.1}});
+    }
+
+    // 1. Convolution Layer
+    Matrix convolve(const Matrix& input) {
+        int size = input.size();
+        Matrix result(3, vector<double>(3, 0.0));
+        
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                double sum = 0.0;
+                for (int fi = 0; fi < 3; ++fi) {
+                    for (int fj = 0; fj < 3; ++fj) {
+                        sum += input[i + fi][j + fj] * filter[fi][fj];
+                    }
+                }
+                result[i][j] = sum;
+            }
+        }
+        return result;
+    }
+
+    // 2. ReLU Activation Layer
+    void applyReLU(Matrix& mat) {
+        for (auto& row : mat) {
+            for (auto& val : row) {
+                val = max(0.0, val);
+            }
+        }
+    }
+
+    // 3. Max Pooling Layer (2x2 pool with stride 1)
+    Matrix maxPool(const Matrix& input) {
+        Matrix result(2, vector<double>(2, 0.0));
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                double maxVal = input[i][j];
+                maxVal = max(maxVal, input[i+1][j]);
+                maxVal = max(maxVal, input[i][j+1]);
+                maxVal = max(maxVal, input[i+1][j+1]);
+                result[i][j] = maxVal;
+            }
+        }
+        return result;
+    }
+
+    // 4. Fully Connected Layer & Classification
+    string classify(const Matrix& pooledFeatures) {
+        vector<string> categories = {"Apple", "Banana", "Orange"};
+        vector<double> scores(3, 0.0);
+        
+        int bestClass = 0;
+        double maxScore = -999.0;
+
+        for (int c = 0; c < 3; ++c) {
+            double score = 0.0;
+            for (int i = 0; i < 2; ++i) {
+                for (int j = 0; j < 2; ++j) {
+                    score += pooledFeatures[i][j] * classWeights[c][i][j];
+                }
+            }
+            scores[c] = score;
+            if (score > maxScore) {
+                maxScore = score;
+                bestClass = c;
+            }
+        }
+        return categories[bestClass];
+    }
+};
+
+int main() {
+    MiniCNN cnn;
+
+    // Simple 5x5 structural matrix simulating a round shape (Apple/Orange profile)
+    Matrix sampleFruit = {
+        {0.1, 0.8, 0.9, 0.8, 0.1},
+        {0.7, 0.1, 0.0, 0.2, 0.8},
+        {0.9, 0.0, 0.0, 0.0, 0.9},
+        {0.7, 0.2, 0.1, 0.3, 0.8},
+        {0.1, 0.7, 0.8, 0.7, 0.1}
+    };
+
+    // Forward propagation pipeline
+    Matrix convOut = cnn.convolve(sampleFruit);
+    cnn.applyReLU(convOut);
+    Matrix poolOut = cnn.maxPool(convOut);
+    string prediction = cnn.classify(poolOut);
+
+    cout << "--- Mini CNN Fruit Classifier Pipeline ---" << "\n\n";
+    cout << "Predicted Fruit Type: " << prediction << "\n";
+
+    return 0;
+}
